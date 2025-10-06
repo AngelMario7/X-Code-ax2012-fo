@@ -1,0 +1,72 @@
+I have a write a code for in form (BattUserwarehouseAcess)
+
+* I have written the code in form grid -> field  -> modified method
+
+code:- this code is used for if we select the record in userid it will automatically insert the Name field:----
+-------
+
+public boolean modified()
+{
+    boolean ret;
+    UserInfo userInfo;
+    BattUserWarehouseAccess battRec;
+
+    ret = super();
+    battRec = element.datasource().cursor();
+
+    select userInfo
+        where userInfo.Id == battRec.UserId;
+
+    if (userInfo.RecId)
+    {
+        battRec.Name = userInfo.Name;
+        element.datasource().refresh();
+    }
+    else
+    {
+        battRec.Name = '';
+        element.datasource().refresh();
+    }
+
+    return ret;
+}
+
+---------------------------------------------------------
+
+and also I have write a code for userid lookup lookup():-
+------------------------------------------
+public void lookup()
+{
+    SysTableLookup              sysTableLookup;
+    Query                       query;
+    QueryBuildDataSource        qbds;
+
+    sysTableLookup = SysTableLookup::newParameters(tableNum(UserInfo), this);
+
+    sysTableLookup.addLookupfield(fieldNum(UserInfo, Id));
+    sysTableLookup.addLookupfield(fieldNum(UserInfo, Name));
+
+    sysTableLookup.performFormLookup();
+}
+
+------------------------------------------------------------------------------------
+and also I have write the code for warehouse lookup():-
+
+
+public void lookup()
+{
+    SysTableLookup              sysTableLookup;
+    Query                       query;
+    QueryBuildDataSource        qbds;
+
+    sysTableLookup = SysTableLookup::newParameters(tableNum(InventLocation), this);
+
+    sysTableLookup.addLookupfield(fieldNum(InventLocation, InventLocationId));
+    sysTableLookup.addLookupfield(fieldNum(InventLocation, Name));
+
+    sysTableLookup.performFormLookup();
+}
+
+------------------------------------------------------------------------------------
+
+

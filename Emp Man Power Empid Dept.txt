@@ -1,0 +1,568 @@
+cost center finalancial dimentions center value display in all purchase order form
+
+haidarling@1
+
+MTP USB Device
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Contract class:-
+-----------------------
+
+[SysOperationContractProcessingAttribute(classStr(BattEmpManPowerUI))]
+//[DataContractAttribute]
+public class BattEmpManPowerContract
+{
+    EmplId              empid;
+    Name                department;
+}
+
+
+
+[
+    DataMemberAttribute('Department'),
+    SysOperationLabelAttribute(literalStr('Department')),
+    SysOperationHelpTextAttribute(literalStr('Department'))
+   // SysOperationGroupMemberAttribute(literalStr('Criteria')),
+   // SysOperationDisplayOrderAttribute('5')
+]
+public Name parmdepartment(Name  _department = department)
+{
+
+    department = _department;
+    return department;
+}
+
+
+
+[
+    DataMemberAttribute('EmplId'),
+    SysOperationLabelAttribute(literalStr('Employee Id')),
+    SysOperationHelpTextAttribute(literalStr('Employee Id')),
+   // SysOperationGroupMemberAttribute(literalStr('Criteria')),
+    SysOperationDisplayOrderAttribute('1')
+]
+public EmplId parmEmplId(EmplId _emplId = empid)
+{
+
+    empid = _emplId;
+    return empid;
+
+}
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+UI Builder Class:----
+-------------------------------------
+
+class BattEmpManPowerUI extends SrsReportDataContractUIBuilder
+{
+    BattEmpManPowerContract            contract;
+    DialogField                        emplid;
+    DialogField                        department;
+}
+
+
+
+public void build()
+{
+    contract = this.dataContractObject() as BattEmpManPowerContract;
+    emplid      =   this.addDialogField(methodStr(BattEmpManPowerContract, parmEmplId), contract);
+    department  =   this.addDialogField(methodStr(BattEmpManPowerContract, parmdepartment), contract);
+
+
+}
+
+
+
+
+private void departmentLookup(FormStringControl _department)
+    {
+        Query query = new Query();
+        QueryBuildDataSource qbds;
+        QueryBuildRange      qbdsRange;
+        SysTableLookup sysTableLookup;
+
+        sysTableLookup = SysTableLookup::newParameters(tableNum(OMOperatingUnit), _department);
+        qbds           = query.addDataSource(tableNum(OMOperatingUnit));
+        sysTableLookup.addLookupfield(fieldNum(OMOperatingUnit, Name), true);
+        sysTableLookup.addLookupfield(fieldNum(OMOperatingUnit, OMOperatingUnitNumber));
+       // sysTableLookup.addLookupfield(fieldNum(OMOperatingUnit, RecId));
+        sysTableLookup.parmQuery(query);
+        sysTableLookup.performFormLookup();
+    }
+
+
+private void EmplIdLookup(FormStringControl _emplId)
+    {
+        Query query = new Query();
+        QueryBuildDataSource qbds;
+        QueryBuildRange      qbdsRange;
+        SysTableLookup sysTableLookup;
+
+        sysTableLookup = SysTableLookup::newParameters(tableNum(HcmWorker), _emplId);
+        qbds           = query.addDataSource(tableNum(HcmWorker));
+        sysTableLookup.addLookupfield(fieldNum(HcmWorker, PersonnelNumber ), true);
+        sysTableLookup.addLookupMethod(tableMethodStr(HcmWorker, name));
+        sysTableLookup.parmQuery(query);
+        sysTableLookup.performFormLookup();
+    }
+
+
+public void postRun()
+    {
+        Dialog dialogLocal = this.dialog();
+        DialogField dialogField, dialogdept;
+
+        super();
+
+        dialogLocal.dialogForm().formRun().controlMethodOverload(false);
+
+
+        dialogField = this.bindInfo().getDialogField(this.dataContractObject(), methodStr(BattEmpManPowerContract, parmdepartment));
+        dialogField.registerOverrideMethod(methodStr(FormStringControl, lookup), methodStr(BattEmpManPowerUI,departmentLookup), this);
+
+    }
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+rpd class:-code for empmanpower
+---------------------------------------
+
+[SRSReportParameterAttribute(classstr(BattEmpManPowerContract))]
+class BattEmpManPowerDP extends SRSReportDataProviderBase
+{
+    BattEmpManPowerTmpTable        tmpTable,tmpCheckTable;
+    BattEmpManPowerContract        contract;
+}
+
+
+
+
+
+public str getDepartmentName(HcmWorker _hcmworker)
+{
+    HcmEmployment hcmEmployment;
+    DimensionAttributeValueSetItem setItem;
+    DimensionAttributeValueSet dimAttrValueSet;
+    DimensionAttributeValue dimAttrValue;
+    DimensionAttribute dimAttribute;
+    OMOperatingUnit  operatingunit;
+    str dispvalue;
+
+    select * from hcmEmployment
+    where hcmEmployment.Worker == _hcmworker.RecId
+    join dimAttrValueSet
+    where dimAttrValueSet.RecId == hcmEmployment.DefaultDimension
+    join DisplayValue from setItem
+    where setItem.DimensionAttributeValueSet == dimAttrValueSet.RecId
+    join dimAttrValue
+    where setItem.DimensionAttributeValue == dimAttrValue.RecId
+    join dimAttribute
+    where dimAttribute.RecId == dimAttrValue.DimensionAttribute && dimAttribute.Name =="Department";
+    {
+        select operatingunit where operatingunit.OMOperatingUnitNumber == setItem.DisplayValue;
+        dispvalue  =  operatingunit.Name;
+    }
+    return dispvalue;
+}
+
+
+[SRSReportDataSetAttribute('BattEmpManPowerTmpTable')]
+public BattEmpManPowerTmpTable  getEmpManPowerTmpTable()
+{
+    select * from tmptable;
+    return tmptable;
+
+}
+
+
+
+
+public void processReport()
+{
+    HcmWorker                    worker, hcmWorker;
+    HcmPersonPrivateDetails      hcmperson;
+    RSHREmplContractDates        contractDatesLocal;
+    HcmPersonDetails             hcmdetails;
+    HcmJobDetail                 jobDetail;
+    HcmJob                       hcmjob;
+    HcmPosition                  hcmPosition;
+    HcmPositionDetail            positionDetail;
+    HcmPositionType              hcmPositionType;
+    HcmEmployment                employment;
+    RSHREmplMeidcalTable         medicaltable;
+    DirPartyTable                party;
+    ACCEmplReligionTable         religiontable;
+    DirPartyLocation             partyLocation;
+    RSVacationRequestTable       vacationtable;
+    BattEmployeeShiftTable       empshiftTable;
+    Batt_AttendanceCaptureTable  attendancecapturetable;
+    Name                         department;
+    EmplId                       emplid;
+    HcmWorker                    hcmwoker;
+    DirPerson                    dirperson;
+    Query                        query = new Query();
+    QueryRun                     queryRun;
+    QueryBuildDataSource         qbds;
+
+    RSExtendedEmplTable          emplTable;
+    RSPayrollCalcTrans           payrollcalTrans;
+    RSCalculatedSalaryTransTable salarycalcTrans, _salCalTrans;
+
+    ACCExtendedEmplTable         accextendedEmplTable;
+    RSEmployeeCalculatedSalaryTable calculatedTable;
+    RSSalaryPackageTable    salaryPackageTable;
+    RSSalaryPackageLine     salaryPackageLine;
+
+    RSExtJobDetails rsExtJobDetails;
+    RSJobGrade      rsJobGrade;
+
+
+    // Set insertedEmpls = new Set(Types::String);    // HcmPositionType posType    //  Ref_HcmPositionType
+
+    TimeOfDay                    inTime;
+    TimeOfDay                    outTime;
+    str                          inTimeStr;
+    str                          outTimeStr;
+    int64                        ticksDiff;
+    real                         hoursDiff;
+    int                          totalMonths, years, months, workingDays, offDays;
+    real                         yearsDiff;
+    Date                         joiningDate;
+    Date                         currentDate;
+    str                          lengthOfServiceStr;
+    int                          totalSeconds;
+    real                         workingHours;
+    str                          inTimeStrFull, outTimeStrFull;
+
+    AmountCur                    basic, housing, transportationallowance, otherallowance, totalSalary, gosiEmployee, gosiEmployer;
+    RSPayrollCalcTrans           rsPayrollTrans;
+    RSHRMEAccrualsTable         accrualsTable;
+    RSHRMParameters              parameters = RSHRMParameters::find();
+
+    contract = this.parmDataContract() as BattEmpManPowerContract;
+    emplid = contract.parmEmplId();
+    department = contract.parmdepartment();
+
+    query = new Query();
+    query.addDataSource(tableNum(ACCExtendedEmplTable));
+
+    if (emplid)
+    {
+        query.dataSourceTable(tableNum(ACCExtendedEmplTable))
+             .addRange(fieldNum(ACCExtendedEmplTable, EmplId))
+             .value(emplid);
+    }
+
+    query.dataSourceTable(tableNum(ACCExtendedEmplTable)).addSortField(fieldNum(ACCExtendedEmplTable, EmplId));
+             //.value(emplid);
+    queryRun = new QueryRun(query);
+
+    while (queryRun.next())
+    {
+        accextendedEmplTable = queryRun.get(tableNum(ACCExtendedEmplTable));
+        // salarycalcTrans = queryRun.get(tableNum(RSCalculatedSalaryTransTable));
+
+        select  emplTable where emplTable.EmplId == accextendedEmplTable.EmplId;
+        select religiontable where religiontable.ReligionId == accextendedEmplTable.ReligionId;
+        hcmWorker = HcmWorker::findByPersonnelNumber(accextendedEmplTable.EmplId);
+
+        // select accextendedEmplTable where accextendedEmplTable.EmplId == calculatedTable.EmplId;
+        select medicaltable where medicaltable.Worker == hcmWorker.RecId;
+      //  select contractDatesLocal where contractDatesLocal.Worker == hcmWorker.RecId;
+
+        select contractDatesLocal
+            order by contractDatesLocal.FirstContractDate desc
+                where contractDatesLocal.Worker == hcmWorker.RecId;
+
+        select party where party.RecId == hcmWorker.Person;
+        // select hcmWorker where hcmWorker.RecId == rshrEmplContracttable.Worker;
+
+        select hcmdetails where hcmdetails.Person == party.RecId;
+        select hcmperson where hcmperson.Person == party.RecId;
+        select vacationtable where vacationtable.EmplId == hcmWorker.PersonnelNumber;
+        if(emplTable.Status == RSExtendedHRMEmplStatus::Employed)
+        {
+            tmpTable.clear();
+
+            tmpTable.EmployeeId         = accextendedEmplTable.EmplId;
+            tmpTable.EmplFingerPrintId  = accextendedEmplTable.EmplId;
+            tmpTable.IqamaNumber        = accextendedEmplTable.IdentificationId;
+            tmpTable.JobTitle           = HcmPosition::findByPosition(hcmWorker.primaryPositionId(), false).description();
+
+            hcmPosition        = HcmPosition::findByPosition(hcmWorker.primaryPositionId(), false);
+            positionDetail     = HcmPositionDetail::findByPosition(hcmPosition.RecId);
+            hcmPositionType   = HcmPositionType::find(positionDetail.PositionType);
+            tmpTable.JobLevel = hcmPositionType.TypeId;
+            //tmpTable.JobLevel = posType.Description;
+
+            hcmjob = HcmJob::find(positionDetail.Job);
+
+            if (hcmjob)
+            {
+                select firstOnly rsExtJobDetails
+                    where rsExtJobDetails.JobDetail == hcmjob.RecId;
+
+                if (rsExtJobDetails && rsExtJobDetails.JobGradeCode)
+                {
+                    select firstOnly rsJobGrade
+                        where rsJobGrade.GradeCode == rsExtJobDetails.JobGradeCode;
+
+                    if (rsJobGrade)
+                    {
+                        tmpTable.GradeCode = rsJobGrade.GradeCode;
+                        tmpTable.SubGrade  = rsJobGrade.EnglishDescription;
+                    }
+                }
+            }
+        
+
+            tmpTable.ProfessionIqama    = ACCExtendedEmplTable.ACCJobTitleInVisa;
+            tmpTable.InsuranceClass     = medicaltable.MedInsClassCode;
+            tmpTable.InsuranceType      = enum2str(medicaltable.MedInsuranceType);
+            tmpTable.EmpNameEN          = party.Name;
+            tmpTable.EmpNameAR          = party.NameAlias;
+            tmpTable.Email              = party.primaryEmail(); // HcmWorker.email()
+            tmpTable.Department         = this.getDepartmentName(HcmWorker::findByPersonnelNumber(accextendedEmplTable.emplid));
+            tmpTable.BankAccount        = accextendedEmplTable.BankAccountNum;
+            tmpTable.GOSINumber         = accextendedEmplTable.EmplGosiNum;
+            tmpTable.EmpGender          = ACCExtendedEmplTable.Gender;
+            tmpTable.Dependents         = hcmdetails.NumberOfDependents;   //(HcmPersonDetails).NumberOfDependents
+            tmpTable.EmplMaritalStatus  = enum2str(hcmdetails.MaritalStatus);   // (HcmPersonDetails).MaritalStatus //ACCExtendedEmplTable.MaritalStatus; //vacationtable.MaritalStatus; //ACCExtendedEmplTable.MaritalStatus;
+            tmpTable.Mobile             = accextendedEmplTable.MobileNumber;  //HcmWorker.phone();
+            tmpTable.MobileKSA          = accextendedEmplTable.MobileKSA;
+            tmpTable.Nationality        = LogisticsAddressCountryRegionTranslation::find(accextendedEmplTable.Nationality).ShortName;//accextendedEmplTable.Nationality;
+            tmpTable.MagneticCardId     = emplTable.AltNum;
+            tmpTable.GosiRegDate        = accextendedEmplTable.GosiStartDate;
+            tmpTable.JoiningDate        = accextendedEmplTable.StartDate;
+            tmpTable.EndProbation       = emplTable.ProbationDate;   //(RSExtendedEmplTable).ProbationDate;
+            tmpTable.StartDateFirstPeriod = accextendedEmplTable.StartDate;
+            tmpTable.BirthDate          = hcmperson.BirthDate;
+            tmpTable.EducationCert      = hcmperson.Education;
+            tmpTable.Age                = tmpTable.BirthDate ? year(today()) - year(tmpTable.BirthDate) : 0;
+            tmpTable.Religion           = religiontable.ReligionId;
+            tmpTable.ScienceIn          = accextendedEmplTable.DesignationInID;
+            tmpTable.ContractRegDate    = contractDatesLocal.FirstContractDate;
+            tmpTable.ContractEndDate    = contractDatesLocal.ExpireDate;
+
+            if(tmpTable.EndProbation && tmpTable.EndProbation > today())
+            {
+                tmpTable.RemainingNotifyDays = tmpTable.EndProbation - today();
+            }
+            else
+            {
+                tmpTable.RemainingNotifyDays = 0;
+            }
+
+            if (tmpTable.ContractEndDate && tmpTable.ContractRegDate)
+            {
+                totalMonths = ((year(tmpTable.ContractEndDate) - year(tmpTable.ContractRegDate)) * 12);
+                // + (mthOfYr(tmpTable.ContractEndDate) - mthOfYr(tmpTable.ContractRegDate));
+                years = totalMonths div 12;
+                // months = totalMonths mod 12;
+                tmpTable.EmplContractDuration = strFmt("%1 Years ", years);  //%2 Months  ,months
+            }
+            else
+            {
+                tmpTable.EmplContractDuration = "";
+            }
+
+            currentDate = today();
+            joiningDate = tmpTable.JoiningDate;
+
+            if(joiningDate)
+            {
+                years = year(currentDate) - year(joiningDate);
+                months = mthofyr(currentDate) - mthofyr(joiningDate);
+
+                if(months < 0)
+                {
+                    years -= 1;
+                    months += 12;
+                }
+
+                lengthOfServiceStr = strFmt("%1 years %2 months", years, months);
+            }
+            else
+            {
+                lengthOfServiceStr = "";
+            }
+
+            tmpTable.EmplLengthOfService = lengthOfServiceStr;
+
+            tmpTable.Country = emplTable.DestinationCountry; //(RSExtendedEmplTable).DestinationCountry
+            tmpTable.City    = accextendedEmplTable.DestinationCity;
+
+            select empshiftTable where empshiftTable.ShiftId == emplTable.ShiftId;
+
+            inTime = empshiftTable.InTime;
+            outTime = empshiftTable.OutTime;
+
+            select  empshiftTable where empshiftTable.ShiftId == emplTable.ShiftId;
+
+            if(empshiftTable.ShiftId)
+            {
+                inTime  = empshiftTable.InTime;
+                outTime = empshiftTable.OutTime;
+
+                if(inTime != 0 && outTime != 0)
+                {
+                    inTimeStrFull  = time2Str(inTime, TimeSeparator::Colon, TimeFormat::AMPM);
+                    outTimeStrFull = time2Str(outTime, TimeSeparator::Colon, TimeFormat::AMPM);
+
+                    inTimeStr  = subStr(inTimeStrFull, 1, 5) + " " + subStr(inTimeStrFull, 10, 2);
+                    outTimeStr = subStr(outTimeStrFull, 1, 5) + " " + subStr(outTimeStrFull, 10, 2);
+
+                    tmpTable.ShiftTime = strFmt("%1 To %2", inTimeStr, outTimeStr);
+
+                    totalSeconds = outTime - inTime;
+
+                    if(totalSeconds > 0)
+                    {
+                        workingHours = totalSeconds * 1.0 / 3600.0;
+                        tmpTable.WorkingHour = workingHours;
+                    }
+                    else
+                    {
+                        tmpTable.WorkingHour = 0;
+                    }
+                }
+                else
+                {
+                    tmpTable.ShiftTime = "N/A";
+                    tmpTable.WorkingHour = 0;
+                }
+            }
+            else
+            {
+                tmpTable.ShiftTime = "";
+                tmpTable.WorkingHour = 0;
+            }
+
+            workingDays = 0;
+            offDays     = 0;
+
+            if(empshiftTable.RecId)
+            {
+                if(empshiftTable.Sunday)     workingDays++;
+                if(empshiftTable.Monday)     workingDays++;
+                if(empshiftTable.Tuesday)    workingDays++;
+                if(empshiftTable.Wednesday)  workingDays++;
+                if(empshiftTable.Thursday)   workingDays++;
+                if(empshiftTable.Friday)     workingDays++;
+                if(empshiftTable.Saturday)   workingDays++;
+
+                offDays = 7 - workingDays;
+
+                tmpTable.WorkingDays = workingDays;
+                tmpTable.EmplOffDay  = offDays;
+            }
+            else
+            {
+                tmpTable.WorkingDays = 0;
+                tmpTable.EmplOffDay  = 0;
+            }
+            select accrualsTable where accrualsTable.EmplId == tmpTable.EmployeeId
+            && accrualsTable.RSAccrualType == RSAccrualType::AnnualVacation;
+             tmpTable.VacationBalanceContract  = accrualsTable.RSAvailableBalance;
+            /// tmpTable.BalanceAsPerMonth         = contractDatesLocal.ContractsVacationDays/contractDatesLocal.ContractPeriod;
+             if(contractDatesLocal.ContractPeriod > 0)
+                {
+                    tmpTable.BalanceAsPerMonth = contractDatesLocal.ContractsVacationDays / contractDatesLocal.ContractPeriod;
+                }
+                else
+                {
+                    tmpTable.BalanceAsPerMonth = 0;
+                }  
+
+
+            tmpTable.ClassificationAccred   = accextendedEmplTable.ClassificationAccred;
+            tmpTable.FlightTicket           = accextendedEmplTable.FlightTicket;
+            tmpTable.TicketEntitlementDate  = tmpTable.ContractEndDate;
+
+
+            basic = 0;
+            housing = 0;
+            transportationallowance = 0;
+            otherallowance = 0;
+            totalSalary = 0;
+
+           // select calculatedTable where calculatedTable.EmplId == accextendedEmplTable.EmplId;
+
+                salaryPackageTable = RSSalaryPackageTable::GetLatestPackage(tmpTable.EmployeeId);
+            select salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID;
+
+              select salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID
+                && salaryPackageLine.PayrollItem == "Live-00001";
+            basic = salaryPackageLine.RSSalaryPackageLineValue;
+
+           select salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID
+                && salaryPackageLine.PayrollItem == "Live-00002";
+            transportationallowance = salaryPackageLine.RSSalaryPackageLineValue;
+
+            select salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID
+                && salaryPackageLine.PayrollItem == "Live-00003";
+            housing = salaryPackageLine.RSSalaryPackageLineValue;
+
+
+           select sum(RSSalaryPackageLineValue) from salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID
+                && salaryPackageLine.PayrollItem != "Live-00001"
+                 && salaryPackageLine.PayrollItem != "Live-00002"
+                  && salaryPackageLine.PayrollItem != "Live-00003";
+            otherallowance = salaryPackageLine.RSSalaryPackageLineValue;
+
+           select salaryPackageLine
+                where salaryPackageLine.RSPackageID == salaryPackageTable.RSPackageID
+                && salaryPackageLine.PayrollItem == "Live-00006";
+
+            tmpTable.GosiDeduction = salaryPackageLine.RSSalaryPackageLineValue;
+
+
+
+            totalSalary = basic + housing + transportationallowance + otherallowance;
+            tmpTable.BasicSalary        = basic;
+            tmpTable.HousingAllowance   = housing;
+            tmpTable.TransportAllowance = transportationallowance;
+            tmpTable.TotalSalary        = totalSalary;
+            if(accextendedEmplTable.Nationality == "SAU")
+            {
+                tmpTable.NetSalary          = tmpTable.TotalSalary - tmpTable.GosiDeduction;
+                if (accextendedEmplTable.GosiType == BattGosiType::Old)
+                {
+                    tmpTable.GosiDeduction = (basic + housing) * (parameters.SaudiGosi / 100);
+                }
+                else
+                {
+                    tmpTable.GosiDeduction = (basic + housing) * (parameters.SaudiGosiNew / 100);
+                }
+            }
+            else
+            {
+                tmpTable.GosiDeduction = (basic + housing) * (parameters.NonSaudiGosi / 100);
+                 tmpTable.NetSalary          = tmpTable.TotalSalary;
+            }
+
+            if (!department || department == tmpTable.Department)
+            {
+                tmpTable.insert();
+            }
+        }
+    }
+}
+
+
+
+
+
+
