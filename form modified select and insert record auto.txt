@@ -1,3 +1,13 @@
+https://github.com/hkhcoder/vprofile-project/blob/prereqs/Prereqs_doc.md  ----links
+
+https://portal.cloud.hashicorp.com/vagrant/discover/eurolinux-vagrant/centos-stream-9  ---vagrant box for centos
+
+https://chocolatey.org/install  ---install chocolaty
+
+https://github.com/AngelMario7/X-Code-ax2012-fo/blob/master/form%20modified%20select%20and%20insert%20record%20auto.txt   -----my github
+
+
+
 I have a write a code for in form (BattUserwarehouseAcess)
 
 * I have written the code in form grid -> field  -> modified method
