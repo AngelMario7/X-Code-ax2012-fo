@@ -78,5 +78,55 @@ public void lookup()
 }
 
 ------------------------------------------------------------------------------------
+inventtransorder form :-Ship button  --select the record and click the shipping button it will check the userid in the battuserwarehouseaccessform  have access are not if user have access then it will give go next otherwise it will throw error 
+
+form clicked () 
+
+
+public void clicked()
+{
+    BattUserWarehouseAccess access;
+    InventTransferTable inventTrans;
+    str userId;
+    str fromWHS;
+    boolean allowed;
+
+    select access where access.UserId == curUserId()
+     && access.AllowShip == NoYes::Yes
+     && access.Warehouse == InventTransferTable.InventLocationIdFrom;
+    if (!access)
+    {
+        throw error(strFmt("You do not have SHIP permission for warehouse %2.", InventTransferTable.InventLocationIdFrom));
+        //return;
+    }
+
+
+    super();
+} 
+
+
+for receive:-
+
+
+public void clicked()
+{
+     BattUserWarehouseAccess access;
+    InventTransferTable inventTrans;
+    str userId;
+    str toWHS;
+    boolean allowed;
+
+  select access where access.UserId == curUserId() 
+     && access.AllowReceive == NoYes::Yes
+     && access.Warehouse == InventTransferTable.InventLocationIdTo;
+    if (!access)
+    {
+        throw error(strFmt("You do not have Receive permission for warehouse %2.",InventTransferTable.InventLocationIdTo));
+       // return;
+    }
+   
+    super();
+}
+
 
 
